@@ -41,7 +41,7 @@ public class InkManager : MonoBehaviour
     
     [SerializeField] TextMeshProUGUI _eventText;
 
-    [Header("Risorse")]
+    [Header("Resource Variables")]
     [SerializeField] ResourceVariable _topRightElement;
     [SerializeField] List<ResourceVariable> _allResourceVariables = new List<ResourceVariable>();
 
@@ -50,6 +50,10 @@ public class InkManager : MonoBehaviour
 
     // Effects-related variables
     bool _keepGlitching = false;
+    float _minGlitch = .35f;
+    float _maxGlitch = .55f;
+    float _stepGlitch = .1f;
+    
     string _defaultHexColor = "#FFCC00";
 
     // Stringbuilder used to manipulate and parse text to be displayed
@@ -129,25 +133,6 @@ public class InkManager : MonoBehaviour
         StopAllCoroutines();
 
         yield return StartCoroutine(ImportStoryFile());
-    }
-
-    /// <summary>
-    /// Loads the story JSON from file
-    /// </summary>
-    /// <returns></returns>
-    private bool LoadStoryFile()
-    {
-        if (File.Exists(Application.streamingAssetsPath + "/" + "story.json"))
-        {
-            StreamReader sr = new StreamReader(Application.streamingAssetsPath + "/" + "story.json");
-            _inkJsonAsset = new TextAsset(sr.ReadToEnd());
-            DebugConsoleLog("--- InkManager: imported Story from StreamingAssets");
-
-            StartStory();
-            return true;
-        }
-
-        return false;
     }
 
     IEnumerator ImportStoryFile()
@@ -481,11 +466,6 @@ public class InkManager : MonoBehaviour
     /// Randomizes the intensity of the Color Aberration
     /// </summary>
     /// <returns></returns>
-
-    float _minGlitch = .35f;
-    float _maxGlitch = .55f;
-    float _stepGlitch = .1f;
-
     IEnumerator GlitchEffect()
     {
         while (_keepGlitching)
