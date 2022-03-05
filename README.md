@@ -276,6 +276,8 @@ If it's an Event:
 			~return food < 50 && morale > 50 
 		- "repeatable":
 			~return true // It will be reactivated upon reset!
+		- "priority":
+			~ return abs(50 - food)
 		- "outcome":
 			~allEvents -=  id // Removes it from the list of the available Events
 			~alter(food, 15) // alter(var, amount) makes sure the result is within 0-100 range
