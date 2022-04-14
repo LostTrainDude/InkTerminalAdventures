@@ -55,7 +55,7 @@ Now let's look at a couple things more closely.
 >>> TITLE: A party!
 ```
 This command (or "direction", which will be explained further [later on](
-#currently-available-directions)) instruct Unity to change the top-left label with the text provided (in this case "A party!")
+#currently-available-directions)) instructs Unity to change the top-left label with the text provided (in this case "A party!")
 
 ---
 ```
@@ -104,7 +104,7 @@ You can toggle Debug mode by changing the boolean value of the `debugMode` globa
 In your ink story you can write "directions" to have the game perform special tasks. You should be able to write them anywhere in your knots, provided that you write them on a newline, and the game should parse them accordingly.
 
 ### Audio management
-The game recognizes only audio files with `.ogg`, `.mp3` and `.wav` files.
+The game recognizes only audio files with `.ogg`, `.mp3` and `.wav` extensions.
 
 #### `>>> PLAY: audioFileName`
 Plays an audio file calling it by name (without extension), provided that a audio file with that name is available within the `StreamingAssets\SFX` folder. **Warning**: case sensitive.
