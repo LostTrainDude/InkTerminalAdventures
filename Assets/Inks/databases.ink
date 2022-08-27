@@ -76,7 +76,7 @@
             - "outcome":
                 ~allEvents -= id
                 ~alter(food, 15)
-                ~alter(morale, 15)
+                ~alter(fuel, -15)
 
             - "outcome_negative":
                 ~allEvents -= id
