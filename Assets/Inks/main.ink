@@ -42,7 +42,7 @@ LIST allEvents = E_PARTY, E_FOOD_SUPPLIES, E_ROLLIES, E_ASTEROID_FIELD, E_NULL
 // MAIN LOOP
 //////////////////////////////////////////////////////
 
--> mission_tape_2
+-> start
 === start
 >>> TITLE: A new beginning
 This is what we've been waiting for. Full clearance to leave and traverse the universe.
