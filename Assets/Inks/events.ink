@@ -83,6 +83,7 @@ You go back to your quarters having maybe lost a good opportunity to catch up wi
 
 === event_asteroid_field
 >>> TITLE: {get_title(E_ASTEROID_FIELD)}
+>>> COLOR: C0C0C0
 We jumped out of hyperspace right into an asteroid field! What should we do?
 
     + [Carefully manouver through]
