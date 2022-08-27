@@ -81,7 +81,7 @@ public class AudioManager : MonoBehaviour
         {
             yield return www.SendWebRequest();
 
-            if (www.isHttpError || www.isNetworkError)
+            if (www.result == UnityWebRequest.Result.ProtocolError || www.result == UnityWebRequest.Result.ConnectionError)
             {
                 Debug.Log(www.error);
             }

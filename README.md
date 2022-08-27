@@ -1,7 +1,7 @@
 # Ink Terminal Adventures
 **Ink Terminal Adventures** is a framework to play **binary choice** Interactive Fiction games that are written using the [ink scripting language](https://github.com/inkle/ink) and feature elements of resource management, loosely as seen in titles like [Reigns](https://en.wikipedia.org/wiki/Reigns_%28video_game%29) and [Seedship](https://johnayliff.itch.io/seedship).
 
-Developed in Unity (current version 2019.4.36f1), its original purpose is to give IF writers a ready-made implementation to rapidly prototype and play with, without having to deal with engine-side programming work.
+Developed in Unity (current version 2021.3.8f1), its original purpose is to give IF writers a ready-made implementation to rapidly prototype and play with, without having to deal with engine-side programming work.
 
 Along with the Unity project, there is an experimental storylet "template", optional, and all written in ink and [explained later](#the-storylets-template).
 
