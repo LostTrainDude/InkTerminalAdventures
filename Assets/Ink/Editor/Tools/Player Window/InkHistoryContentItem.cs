@@ -21,13 +21,20 @@ namespace Ink.UnityIntegration.Debugging {
         public string content;
         public List<string> tags;
         public ContentType contentType;
-        [SerializeField]
-        JsonDateTime _time;
+        // Creating a datetime from a long is slightly expensive (it can happen many times in a frame). To fix this we cache the result once converted. 
+        [SerializeField] JsonDateTime _serializableTime;
+        [NonSerialized] bool hasDeserializedTime;
+        [NonSerialized] DateTime _time;
         public DateTime time {
             get {
+                if (!hasDeserializedTime) {
+                    _time = _serializableTime;
+                    hasDeserializedTime = true;
+                }
                 return _time;
             } private set {
                 _time = value;
+                _serializableTime = value;
             }
         }
 
@@ -47,28 +54,28 @@ namespace Ink.UnityIntegration.Debugging {
             return new InkHistoryContentItem(choiceText, tags, InkHistoryContentItem.ContentType.PresentedContent);
         }
         public static InkHistoryContentItem CreateForPresentChoice (Choice choice) {
-            return new InkHistoryContentItem(choice.text.Trim(), InkHistoryContentItem.ContentType.PresentedChoice);
+            return new InkHistoryContentItem(choice.text.Trim(), choice.tags, InkHistoryContentItem.ContentType.PresentedChoice);
         }
         public static InkHistoryContentItem CreateForMakeChoice (Choice choice) {
-            return new InkHistoryContentItem(choice.text.Trim(), InkHistoryContentItem.ContentType.ChooseChoice);
+            return new InkHistoryContentItem(choice.text.Trim(), choice.tags, InkHistoryContentItem.ContentType.ChooseChoice);
         }
-        public static InkHistoryContentItem CreateForEvaluateFunction (string choiceText) {
-            return new InkHistoryContentItem(choiceText, InkHistoryContentItem.ContentType.EvaluateFunction);
+        public static InkHistoryContentItem CreateForEvaluateFunction (string functionInfoText) {
+            return new InkHistoryContentItem(functionInfoText, InkHistoryContentItem.ContentType.EvaluateFunction);
         }
-        public static InkHistoryContentItem CreateForCompleteEvaluateFunction (string choiceText) {
-            return new InkHistoryContentItem(choiceText, InkHistoryContentItem.ContentType.CompleteEvaluateFunction);
+        public static InkHistoryContentItem CreateForCompleteEvaluateFunction (string functionInfoText) {
+            return new InkHistoryContentItem(functionInfoText, InkHistoryContentItem.ContentType.CompleteEvaluateFunction);
         }
-        public static InkHistoryContentItem CreateForChoosePathString (string choiceText) {
-            return new InkHistoryContentItem(choiceText, InkHistoryContentItem.ContentType.ChoosePathString);
+        public static InkHistoryContentItem CreateForChoosePathString (string choosePathStringText) {
+            return new InkHistoryContentItem(choosePathStringText, InkHistoryContentItem.ContentType.ChoosePathString);
         }
-        public static InkHistoryContentItem CreateForWarning (string choiceText) {
-            return new InkHistoryContentItem(choiceText, InkHistoryContentItem.ContentType.Warning);
+        public static InkHistoryContentItem CreateForWarning (string warningText) {
+            return new InkHistoryContentItem(warningText, InkHistoryContentItem.ContentType.Warning);
         }
-        public static InkHistoryContentItem CreateForError (string choiceText) {
-            return new InkHistoryContentItem(choiceText, InkHistoryContentItem.ContentType.Error);
+        public static InkHistoryContentItem CreateForError (string errorText) {
+            return new InkHistoryContentItem(errorText, InkHistoryContentItem.ContentType.Error);
         }
-        public static InkHistoryContentItem CreateForDebugNote (string choiceText) {
-            return new InkHistoryContentItem(choiceText, InkHistoryContentItem.ContentType.DebugNote);
+        public static InkHistoryContentItem CreateForDebugNote (string noteText) {
+            return new InkHistoryContentItem(noteText, InkHistoryContentItem.ContentType.DebugNote);
         }
 
         struct JsonDateTime {
