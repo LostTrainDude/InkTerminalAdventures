@@ -50,12 +50,17 @@ public class AudioManager : MonoBehaviour
 
     void Start()
     {
+        ReloadAudio();
+    }
+
+    public void ReloadAudio()
+    {
         // Collect all the .mp3, .ogg and .wav files in the StreamingAssets folder
         IEnumerable<string> allSFXpaths = Directory.EnumerateFiles($"{Application.streamingAssetsPath}/SFX", "*.*", SearchOption.AllDirectories).Where(x =>
             x.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase) ||
             x.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase) ||
             x.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
-            );
+        );
 
         // Import each of them into the game
         foreach (string path in allSFXpaths)

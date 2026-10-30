@@ -10,6 +10,8 @@ using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
 using System;
 using UnityEngine.Networking;
+using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 [Serializable]
 public class ResourceVariable
@@ -37,9 +39,29 @@ public class InkManager : MonoBehaviour
     [SerializeField] ChoiceButton _firstChoice;
     [SerializeField] ChoiceButton _secondChoice;
     
+    [SerializeField] ButtonColorComponent _reloadButtonColor;
+    [SerializeField] ButtonColorComponent _quitButtonColor;
+    
     [SerializeField] UILabel _titleLabel;
     
     [SerializeField] TextMeshProUGUI _eventText;
+
+
+    [Header("Panels")]
+    [SerializeField] bool _activateScrollbars;
+    
+    [Space()]
+    
+    [SerializeField] GameObject _scrollbarPanel;
+    [SerializeField] Image _scrollbarBackground;
+    [SerializeField] Image _scrollbarHandle;
+    [SerializeField] TextMeshProUGUI _eventTextWithScrollbar;
+
+    [Space()]
+
+    [SerializeField] GameObject _defaultPanel;
+    [SerializeField] TextMeshProUGUI _eventTextNoScrollbar;
+
 
     [Header("Resource Variables")]
     [SerializeField] ResourceVariable _topRightElement;
@@ -98,6 +120,8 @@ public class InkManager : MonoBehaviour
 
     void Initialize()
     {
+        QualitySettings.vSyncCount = 1;
+
         _postProcessingVolume.profile.TryGet<ChromaticAberration>(out _aberration);
         _storyLoaded = false;
 
@@ -114,8 +138,23 @@ public class InkManager : MonoBehaviour
         _allUIText = new List<UILabel>()
         {
             _titleLabel,
-            _topRightElement.UILabel
+            _topRightElement.UILabel,
         };
+
+        if (_activateScrollbars)
+        {
+            _defaultPanel.SetActive(false);
+            _scrollbarPanel.SetActive(true);
+            _eventText = _eventTextWithScrollbar;
+        }
+        else
+        {
+            _scrollbarPanel.SetActive(false);
+            _defaultPanel.SetActive(true);
+            _eventText = _eventTextNoScrollbar;
+        }
+
+        _eventTextNoScrollbar.text = string.Empty;
     }
 
     // Start is called before the first frame update
@@ -130,7 +169,10 @@ public class InkManager : MonoBehaviour
         
         // Reset effects
         _keepGlitching = false;
+        _aberration.intensity.value = 0f;
         StopAllCoroutines();
+        
+        AudioManager.instance.ReloadAudio();
 
         yield return StartCoroutine(ImportStoryFile());
     }
@@ -150,8 +192,7 @@ public class InkManager : MonoBehaviour
                 _firstChoice.TurnOff();
                 _secondChoice.TurnOff();
 
-                _titleLabel.UpdateLabel("ERROR");
-                _eventText.text = "No \"story.json\" file found in the StreamingAssets folder!";
+                DisplayError("No \"story.json\" file found in the StreamingAssets folder!");
             }
             else
             {
@@ -159,8 +200,19 @@ public class InkManager : MonoBehaviour
                 _inkJsonAsset = new TextAsset(sr.ReadToEnd());
                 StartStory();
                 _storyLoaded = true;
+                sr.Close();
             }
         }
+    }
+
+    /// <summary>
+    /// Displays an error in the main text field
+    /// </summary>
+    /// <param name="message"></param>
+    private void DisplayError(string message)
+    {
+        _titleLabel.UpdateLabel("ERROR");
+        _eventText.text = message;
     }
 
     /// <summary>
@@ -171,30 +223,59 @@ public class InkManager : MonoBehaviour
         _story = new Story(_inkJsonAsset.text);
 
         RemoveVariableObservers();
-        AddVariableObservers();
-
-        RefreshResourcesLabels();
-        DebugConsoleLog("--- InkManager: new Story started!");
-        ContinueStory();
+        
+        if (AddVariableObservers())
+        {
+            RefreshResourcesLabels();
+            DebugConsoleLog("--- InkManager: new Story started!");
+            ContinueStory();
+        }
     }
 
-
-    private void AddVariableObservers()
+    /// <summary>
+    /// Collect all "resource variables" from a manually created List in the editor
+    /// and find their match in the actual Ink story
+    /// </summary>
+    /// <returns></returns>
+    private bool AddVariableObservers()
     {
-        _allResourceVariables.ForEach(v =>
+        foreach (ResourceVariable v in _allResourceVariables)
         {
+            if (_story.variablesState.GetVariableWithName(v.InkVariableName) == null)
+            {
+                DisplayError($"No variable named \"{v.InkVariableName}\" in the story.json file");
+                return false;
+            }
+
             _story.ObserveVariable(v.InkVariableName, (string varName, object newValue) =>
             {
                 v.UILabel.UpdateLabel($"{v.Prefix}: {newValue}");
             });
-        });
 
-        _story.ObserveVariable(_topRightElement.InkVariableName, (string varName, object newValue) =>
+        };
+
+        // Check whether there are variables in the "top-right Element", as well
+        if (_story.variablesState.GetVariableWithName(_topRightElement.InkVariableName) != null)
         {
-            _topRightElement.UILabel.UpdateLabel($"{_topRightElement.Prefix}: {newValue}");
-        });
+            _topRightElement.UILabel.gameObject.SetActive(true);
+
+            _story.ObserveVariable(_topRightElement.InkVariableName, (string varName, object newValue) =>
+            {
+                _topRightElement.UILabel.UpdateLabel($"{_topRightElement.Prefix}: {newValue}");
+            });
+
+        }
+        else
+        {
+            _topRightElement.UILabel.gameObject.SetActive(false);
+        }
+
+        return true;
     }
 
+    /// <summary>
+    /// Stops observing all variables
+    /// </summary>
     private void RemoveVariableObservers()
     {
         _allResourceVariables.ForEach(v =>
@@ -330,7 +411,7 @@ public class InkManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Refreshes the resources' nad "remaining jumps" labels
+    /// Refreshes the resources' and "remaining jumps" labels
     /// </summary>
     public void RefreshResourcesLabels()
     {
@@ -387,7 +468,7 @@ public class InkManager : MonoBehaviour
             // Elaborates the command and executes it
             switch (command)
             {
-                // Chnges the Title
+                // Changes the Title
                 case "TITLE":
                     _titleLabel.UpdateLabel(parameter.ToUpper());
                     break;
@@ -405,15 +486,17 @@ public class InkManager : MonoBehaviour
                     UpdateUIColors(textColor);
                     break;
 
-                // Plays a one shot
+                // Plays a one shot audio clip
                 case "PLAY":
                     AudioManager.instance.PlayOneShot(parameter);
                     break;
 
+                // Plays an audio clip on loop
                 case "PLAY LOOP":
                     AudioManager.instance.Play(parameter);
                     break;
 
+                // Stops a specific audio clip or all audio clips
                 case "STOP":
                     if (parameter.Contains("ALL"))
                     {
@@ -424,6 +507,7 @@ public class InkManager : MonoBehaviour
                     AudioManager.instance.Stop(parameter);
                     break;
 
+                // Displays a glitching effect on the screen
                 case "GLITCH":
                     if (parameter.Contains("START"))
                     {
@@ -449,6 +533,7 @@ public class InkManager : MonoBehaviour
     /// <param name="choiceIndex"></param>
     public void SelectChoice(int choiceIndex)
     {
+        if (!_storyLoaded) return;
         if (!AreChoicesAvailable()) return;
 
         Choice choice = _story.currentChoices[choiceIndex];
@@ -491,7 +576,16 @@ public class InkManager : MonoBehaviour
         _allUIText.ForEach(x => x.UpdateColors(textColor));
         _allUIText.ForEach(x => x.ResetColor());
 
+        _reloadButtonColor.UpdateColors(textColor);
+        _reloadButtonColor.ResetColor();
+        
+        _quitButtonColor.UpdateColors(textColor);
+        _quitButtonColor.ResetColor();
+
         _eventText.color = new Color(textColor.r, textColor.g, textColor.b, textColor.a);
+
+        _scrollbarBackground.color = new Color(textColor.r, textColor.g, textColor.b, 0.333f);
+        _scrollbarHandle.color = new Color(textColor.r, textColor.g, textColor.b, textColor.a);
     }
 
     /// <summary>
@@ -513,27 +607,35 @@ public class InkManager : MonoBehaviour
         Debug.Log(message);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void Reload()
     {
-        // Hit R to reload the story file
-        if (Input.GetKeyDown(KeyCode.R)) StartCoroutine(Start());
-        if (Input.GetKeyDown(KeyCode.Escape)) Application.Quit();
+        StartCoroutine(Start());
+    }
 
-        // If there is no story file loaded don't allow
-        // other keypresses
-        if (!_storyLoaded) return;
+    public void Quit()
+    {
+        Application.Quit();
+    }
 
-        switch (_story.currentChoices.Count)
+    public void OnReload(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed) Reload();
+    }
+    public void OnQuit(InputAction.CallbackContext ctx) => Quit();
+
+    public void OnSelectChoice1(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed)
         {
-            case 1:
-                if (Input.GetKeyDown(KeyCode.Alpha1)) SelectChoice(0);
-                break;
-            
-            case 2:
-                if (Input.GetKeyDown(KeyCode.Alpha1)) SelectChoice(0);
-                if (Input.GetKeyDown(KeyCode.Alpha2)) SelectChoice(1);
-                break;
+            if (_story.currentChoices.Count > 0) SelectChoice(0);
+        }
+    }
+
+    public void OnSelectChoice2(InputAction.CallbackContext ctx)
+    {
+        if (ctx.performed)
+        {
+            if (_story.currentChoices.Count > 1) SelectChoice(1);
         }
     }
 }

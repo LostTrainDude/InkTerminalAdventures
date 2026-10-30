@@ -1,62 +1,31 @@
-﻿using UnityEngine;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build;
-using System.Text;
-using Ink.UnityIntegration;
-using System.Linq;
-#if UNITY_2018_1_OR_NEWER
 using UnityEditor.Build.Reporting;
-#endif
+using Ink.UnityIntegration;
 
-class InkPreBuildValidationCheck : 
-#if UNITY_2018_1_OR_NEWER
-IPreprocessBuildWithReport
-#else
-IPreprocessBuild
-#endif
+// Before a build, make sure all ink is freshly compiled and fail the build if any master file has errors.
+// With the ScriptedImporter, ink is compiled on import, so this just forces a synchronous reimport and
+// then inspects the resulting InkFile assets (rather than watching a compilation queue).
+class InkPreBuildValidationCheck : IPreprocessBuildWithReport
 {
-	public int callbackOrder { get { return 0; } }
-	
-    #if UNITY_2018_1_OR_NEWER
-    public void OnPreprocessBuild(BuildReport report) {
-        PreprocessValidationStep();
-    }
-    #else
-    public void OnPreprocessBuild(BuildTarget target, string path) {
-		PreprocessValidationStep();
-	}
-    #endif
+	public int callbackOrder => 0;
 
-    static void PreprocessValidationStep () {
-        // If we're compiling, we've throw an error to cancel the build. Exit out immediately.
-        if(!AssertNotCompiling()) return;
-        EnsureInkIsCompiled();
-    }
-    
-    // Prevent building if ink is currently compiling. 
-    // Ideally we'd force it to complete instantly. 
-    // It seems you can do this with WaitHandle.WaitAll but I'm out of my depth!
-    // Info here - https://stackoverflow.com/questions/540078/wait-for-pooled-threads-to-complete
-    static bool AssertNotCompiling () {
-        if(InkCompiler.executingCompilationStack) {
-            StringBuilder sb = new StringBuilder("Ink is currently compiling!");
-            var errorString = sb.ToString();
-            InkCompiler.SetBuildBlocked();
-            if(UnityEditor.EditorUtility.DisplayDialog("Ink Build Error!", errorString, "Ok")) {
-                Debug.LogError(errorString);
-            }
-            return false;
-        }
-        return true;
-    }
-    
-    // Immediately compile any files that aren't compiled and should be.
-    static void EnsureInkIsCompiled () {
-        var filesToRecompile = InkLibrary.GetFilesRequiringRecompile();
-        if(filesToRecompile.Any()) {
-            if(InkSettings.instance.compileAllFilesAutomatically) {
-                InkCompiler.CompileInk(filesToRecompile.ToArray(), true, null);
-            }
-        }
-    }
+	public void OnPreprocessBuild (BuildReport report) {
+		// Ensure everything is compiled with the latest source before we inspect results.
+		InkEditorUtils.ForceRecompileAllInkFilesSync();
+
+		var filesWithErrors = new List<string>();
+		foreach (var guid in AssetDatabase.FindAssets("glob:\"*.ink\"")) {
+			var path = AssetDatabase.GUIDToAssetPath(guid);
+			var inkFile = AssetDatabase.LoadAssetAtPath<InkFile>(path);
+			if (inkFile != null && inkFile.hasErrors) filesWithErrors.Add(path);
+		}
+
+		if (filesWithErrors.Count > 0) {
+			throw new BuildFailedException(
+				"Ink compilation errors must be fixed before building. Files with errors:\n" +
+				string.Join("\n", filesWithErrors));
+		}
+	}
 }

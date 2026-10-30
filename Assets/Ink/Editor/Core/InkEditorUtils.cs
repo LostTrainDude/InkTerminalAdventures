@@ -12,8 +12,13 @@ using Path = System.IO.Path;
 namespace Ink.UnityIntegration {
 	[InitializeOnLoad]
 	public static class InkEditorUtils {
+#if UNITY_6000_4_OR_NEWER
+		class CreateInkAssetAction : AssetCreationEndAction {
+			public override void Action(EntityId entityId, string pathName, string resourceFile) {
+#else
 		class CreateInkAssetAction : EndNameEditAction {
 			public override void Action(int instanceId, string pathName, string resourceFile) {
+#endif
 				var text = "";
 				if(File.Exists(resourceFile)) {
 					StreamReader streamReader = new StreamReader(resourceFile);
@@ -26,9 +31,22 @@ namespace Ink.UnityIntegration {
 			}
 		}
 		public const string inkFileExtension = ".ink";
-		const string lastCompileTimeKey = "InkIntegrationLastCompileTime";
+
+		// Version constants (previously on InkLibrary, which has been retired in favour of the InkImporter).
+		public static readonly System.Version inkVersionCurrent = new System.Version(1,2,1);
+		public static readonly System.Version unityIntegrationVersionCurrent = new System.Version(2,0,0);
 
 		private static Texture2D _inkLogoIcon;
+
+		static InkEditorUtils() {
+			var isFirstLaunch = SessionState.GetBool("InkIsFirstUnityLaunch", true);
+			if (isFirstLaunch) {
+				SessionState.SetBool("InkIsFirstUnityLaunch", false);
+				if(InkSettings.instance.automaticallyAddDefineSymbols)
+					InkDefineSymbols.AddGlobalDefine();
+			}
+		}
+
 		public static Texture2D inkLogoIcon {
 			get {
 				if(_inkLogoIcon == null) {
@@ -38,29 +56,34 @@ namespace Ink.UnityIntegration {
 			}
 		}
 
-		[MenuItem("Assets/Rebuild Ink Library", false, 200)]
-		public static void RebuildLibrary() {
-			InkLibrary.Rebuild();
+
+		/// <summary>
+		/// Reimports every ink file, recompiling all master files via the InkImporter. A scripting utility
+		/// for the rare case you need to force a full recompile (e.g. a CI lint step) — ink recompiles
+		/// automatically on import, so this isn't exposed as a menu item.
+		/// </summary>
+		public static void ForceRecompileAllInkFilesAsync() {
+			ReimportAllInkFiles(ImportAssetOptions.Default);
 		}
 
-		[MenuItem("Assets/Recompile Ink", false, 201)]
-		public static void RecompileAll() {
-			var filesToRecompile = InkLibrary.FilesCompiledByRecompileAll().ToArray();
-			string logString = filesToRecompile.Any() ? 
-				"Recompile All will compile "+string.Join(", ", filesToRecompile.Select(x => Path.GetFileName(x.filePath)).ToArray()) :
-				"No valid ink found. Note that only files with 'Compile Automatic' checked are compiled if not set to compile all files automatically in InkSettings file.";
-			Debug.Log(logString);
-			InkCompiler.CompileInk(filesToRecompile);
+		/// <summary>As <see cref="ForceRecompileAllInkFilesAsync"/>, but blocks until all imports finish.
+		/// For build scripts; no menu item, since a synchronous reimport freezes the editor.</summary>
+		public static void ForceRecompileAllInkFilesSync() {
+			ReimportAllInkFiles(ImportAssetOptions.ForceSynchronousImport);
 		}
 
-        public static void RecompileAllImmediately() {
-            var filesToRecompile = InkLibrary.FilesCompiledByRecompileAll().ToArray();
-            string logString = filesToRecompile.Any() ? 
-                                   "Recompile All Immediately will compile "+string.Join(", ", filesToRecompile.Select(x => Path.GetFileName(x.filePath)).ToArray()) :
-                                   "No valid ink found. Note that only files with 'Compile Automatic' checked are compiled if not set to compile all files automatically in InkSettings file.";
-            Debug.Log(logString);
-            InkCompiler.CompileInk(filesToRecompile, true, null);
-        }
+		static void ReimportAllInkFiles(ImportAssetOptions options) {
+			var guids = AssetDatabase.FindAssets("glob:\"*.ink\"");
+			AssetDatabase.StartAssetEditing();
+			try {
+				foreach (var guid in guids) {
+					var path = AssetDatabase.GUIDToAssetPath(guid);
+					AssetDatabase.ImportAsset(path, options | ImportAssetOptions.ForceUpdate);
+				}
+			} finally {
+				AssetDatabase.StopAssetEditing();
+			}
+		}
 
 
 
@@ -73,9 +96,14 @@ namespace Ink.UnityIntegration {
 		
 		public static void CreateNewInkFileAtPathWithTemplateAndStartNameEditing (string filePath, string templateFileLocation) {
 			if(Path.GetExtension(filePath) != inkFileExtension) filePath += inkFileExtension;
+#if UNITY_6000_4_OR_NEWER
+			ProjectWindowUtil.StartNameEditingIfProjectWindowExists(EntityId.None, ScriptableObject.CreateInstance<CreateInkAssetAction>(), filePath, InkBrowserIcons.inkFileIcon, templateFileLocation);
+#else
 			ProjectWindowUtil.StartNameEditingIfProjectWindowExists(0, ScriptableObject.CreateInstance<CreateInkAssetAction>(), filePath, InkBrowserIcons.inkFileIcon, templateFileLocation);
+#endif
 		}
 
+		/// <summary>Creates a new .ink file at the given path with the given contents and returns the imported asset.</summary>
 		public static DefaultAsset CreateNewInkFileAtPath (string filePath, string text) {
 			if(Path.GetExtension(filePath) != inkFileExtension) filePath += inkFileExtension;
 			var assetPath = CreateScriptAsset(filePath, text);
@@ -173,6 +201,7 @@ namespace Ink.UnityIntegration {
 			return story.variablesState.GetEnumerator().MoveNext();
 		}
 
+		/// <summary>Returns true if the JSON parses as a valid ink story; otherwise false, with the parse exception.</summary>
 		public static bool CheckStoryIsValid (string storyJSON, out Exception exception) {
 			try {
 				new Story(storyJSON);
@@ -218,9 +247,7 @@ namespace Ink.UnityIntegration {
 			return true;
 		}
 		
-		// Returns a sanitized version of the supplied string by:
-		//    - swapping MS Windows-style file separators with Unix/Mac style file separators.
-		// If null is provided, null is returned.
+		/// <summary>Normalises a path to use forward slashes (returns null for null input).</summary>
 		public static string SanitizePathString(string path) {
 			if (path == null) {
 				return null;
@@ -228,9 +255,7 @@ namespace Ink.UnityIntegration {
 			return path.Replace('\\', '/');
 		}
 		
-		// Combines two file paths and returns that path.  Unlike C#'s native Paths.Combine, regardless of operating 
-		// system this method will always return a path which uses forward slashes ('/' characters) exclusively to ensure
-		// equality checks on path strings return equalities as expected.
+		/// <summary>Combines two paths, always using forward slashes (unlike Path.Combine) so path comparisons are consistent.</summary>
 		public static string CombinePaths(string firstPath, string secondPath) {
             Debug.Assert(firstPath != null);
             Debug.Assert(secondPath != null);
@@ -245,61 +270,14 @@ namespace Ink.UnityIntegration {
 			return InkEditorUtils.CombinePaths(Application.dataPath, filePath.Substring(7));
 		}
 
-		/// <summary>
-		/// Draws a property field for a story using GUILayout, allowing you to attach stories to the player window for debugging.
-		/// </summary>
-		/// <param name="story">Story.</param>
-		/// <param name="label">Label.</param>
-		public static void DrawStoryPropertyField (Story story, GUIContent label) {
-			Debug.LogWarning("DrawStoryPropertyField has been moved from InkEditorUtils to InkPlayerWindow");
-		}
-
-		/// <summary>
-		/// Draws a property field for a story using GUI, allowing you to attach stories to the player window for debugging.
-		/// </summary>
-		/// <param name="position">Position.</param>
-		/// <param name="story">Story.</param>
-		/// <param name="label">Label.</param>
-		public static void DrawStoryPropertyField (Rect position, Story story, GUIContent label) {
-			Debug.LogWarning("DrawStoryPropertyField has been moved from InkEditorUtils to InkPlayerWindow");
-		}
-		
-		/// <summary>
-		/// Checks to see if the given path is an ink file or not, regardless of extension.
-		/// </summary>
-		/// <param name="path">The path to check.</param>
-		/// <returns>True if it's an ink file, otherwise false.</returns>
+		/// <summary>Returns true if the given path is a .ink file.</summary>
 		public static bool IsInkFile(string path) {
-			string extension = Path.GetExtension(path);
-			if (extension == InkEditorUtils.inkFileExtension) {
-				return true;
-			}
-
-			return String.IsNullOrEmpty(extension) && InkLibrary.instance.inkLibrary.Exists(f => f.filePath == path);
+			if (string.IsNullOrEmpty(path)) return false;
+			return Path.GetExtension(path) == inkFileExtension;
 		}
 
 
 
-		/// <summary>
-		/// Opens an ink file in the associated editor at the correct line number.
-		/// TODO - If the editor is inky, this code should load the master file, but immediately show the correct child file at the correct line.
-		/// </summary>
-		public static void OpenInEditor (InkFile inkFile, InkCompilerLog log) {
-			var targetFilePath = log.GetAbsoluteFilePath(inkFile);
-			// EditorUtility.OpenWithDefaultApp(targetFilePath);
-			AssetDatabase.OpenAsset(inkFile.inkAsset, log.lineNumber);
-			// Unity.CodeEditor.CodeEditor.OSOpenFile();
-#if UNITY_2019_1_OR_NEWER
-
-			// This function replaces OpenFileAtLineExternal, but I guess it's totally internal and can't be accessed.
-			// CodeEditorUtility.Editor.Current.OpenProject(targetFilePath, lineNumber);
-			// #pragma warning disable
-			// UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(targetFilePath, log.lineNumber);
-			// #pragma warning restore
-#else
-			UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(targetFilePath, log.lineNumber);
-#endif
-		}
 		/// <summary>
 		/// Opens an ink file in the associated editor at the correct line number.
 		/// TODO - If the editor is inky, this code should load the master file, but immediately show the correct child file at the correct line.
@@ -309,15 +287,11 @@ namespace Ink.UnityIntegration {
 				Debug.LogWarning("Tried to open an ink file ("+subFilePath+") at line "+lineNumber+" but the file is an include file. This is not currently implemented. The master ink file will be opened at line 0 instead.");
 				lineNumber = 0;
 			}
-			#if UNITY_2019_1_OR_NEWER
 			// This function replaces OpenFileAtLineExternal, but I guess it's totally internal and can't be accessed.
 			// CodeEditorUtility.Editor.Current.OpenProject(masterFilePath, lineNumber);
 			#pragma warning disable
 			UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(masterFilePath, lineNumber);
 			#pragma warning restore
-			#else
-			UnityEditorInternal.InternalEditorUtility.OpenFileAtLineExternal(masterFilePath, lineNumber);
-			#endif
 		}
 
 
@@ -342,6 +316,7 @@ namespace Ink.UnityIntegration {
 
 			return String.Concat(result);
 		}
+
 
 
 		// If this plugin is installed as a package, returns info about it.

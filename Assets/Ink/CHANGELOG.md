@@ -1,3 +1,37 @@
+## Version 2.0.0 (7th July 2026):
+Ink files are now compiled by a Unity ScriptedImporter, replacing the old compile queue and its per-file `.json` output.
+
+- ⚠️ Breaking: `.ink` files import as an `InkFile` asset — no `.json` is generated. Reference `InkFile` and use `new Story(inkFile.storyJson)`.
+- ⚠️ Breaking: minimum Unity version is now 2022.3 LTS.
+- Editing an include (even nested) now reliably reimports its master file(s).
+- Errors, warnings and TODOs show on the import inspector and in the console.
+- Ink file icons show state badges (error, warning, TODO, include) consistently in the Project window, inspector header and object fields.
+- Builds now fail if any ink file has compile errors.
+- Ink Player: load a story by assigning an `InkFile` (not a JSON `TextAsset`); tethered stories let you edit variables by default; the history-visibility filter and the auto-play controls are now compact popups.
+- Ink Player: auto-play can use a fixed random seed to replay the exact same route — seeds both `RANDOM()`/shuffles and Auto-Choice.
+- Removed `InkLibrary`, the `InkCompiler` queue and the auto-compiler; "Rebuild Ink Library" is now "Recompile All Ink Files".
+- Editor inspectors and windows rebuilt with UI Toolkit.
+
+### Migrating from 1.x — see MIGRATION.md
+1. Update to Unity 2022.3+.
+2. Reference the `.ink`'s `InkFile` instead of the `.json`, and use `new Story(inkFile.storyJson)`.
+3. Delete the old `.json` files with the **Migrate Ink Project from 1.x** button in Project Settings ▸ Ink (also offered in the Ink Update window).
+
+## Version 1.3.0 (5th July 2026):
+- Updated Ink to 1.2.1
+- ⚠️ The minimum supported Unity version is now 2022.3 LTS
+- Updated for Unity 6: resolves obsolete API warnings (script define symbols now use NamedBuildTarget) and the Unity 6 serialization analyzer warnings
+- Removed legacy code paths for Unity versions older than 2022.3, modernising the editor code (e.g. using TypeCache for inspector lookup)
+- The demo now works with both the legacy Input Manager and the new Input System
+
+## Version 1.2.1 (31st July 2024):
+- Fixes broken demo script
+
+## Version 1.2.0 (12th July 2024):
+- 🎉 Updated Ink to 1.2.0! See whats new!
+- Some significant editor performance improvements
+- #173 Add support for automatically adding #INK_RUNTIME and #INK_EDITOR defines. Go to Project Settings -> Ink Settings to toggle it!
+
 ## Version 1.1.8 (11th July 2023):
 - Update the demo scene to Unity 2020.3.25f1 to improve compatibility with more recent versions
 - Fixes a missing GUIStyle in the Ink Player Window in recent versions of Unity
@@ -101,7 +135,7 @@ Bug fixes
 - Reduced the amount of data saved in InkLibrary by storing metadata in EditorPrefs
 - Split some parts of InkLibrary into InkSettings ScriptableObject
 
-## VersionAdded in 0.7.0
+## Version 0.7.0
 - Update Ink to 0.7
 - New icon for manually compiled
 - Improved ink library editor

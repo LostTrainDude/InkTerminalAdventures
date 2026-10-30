@@ -1,32 +1,25 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
-public class ChoiceButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler, IPointerExitHandler
+public class ChoiceButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHandler, IPointerExitHandler, ISelectHandler, ISubmitHandler
 {
-    public int ChoiceIndex;
-
     Button _button;
-    Image _image;
-    TextMeshProUGUI _choiceText;
+    TextMeshProUGUI _label;
 
-    public Color32 ContainerHighlightedColor;
-    public Color32 ContainerNormalColor;
-
-    public Color32 LabelHighlightedTextColor;
-    public Color32 LabelNormalTextColor;
-
+    ButtonColorComponent _colorComponent;
+    
     bool _isHovering;
+    
+    public int ChoiceIndex;
 
     private void Awake()
     {
         _button = GetComponent<Button>();
-        _image = GetComponent<Image>();
-        _choiceText = GetComponentInChildren<TextMeshProUGUI>();
-
+        _label = GetComponentInChildren<TextMeshProUGUI>();
+        _colorComponent = GetComponent<ButtonColorComponent>();
+        
         UpdateChoiceText(string.Empty);
     }
 
@@ -34,7 +27,6 @@ public class ChoiceButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHa
     {
         if (!_button.IsInteractable()) return;
 
-        AudioManager.instance.PlayOneShot("hover");
         InkManager.instance.ShowOutcomes(ChoiceIndex);
     }
 
@@ -42,7 +34,6 @@ public class ChoiceButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHa
     {
         if (!_button.IsInteractable()) return;
 
-        AudioManager.instance.PlayOneShot("click");
         InkManager.instance.SelectChoice(ChoiceIndex);
     }
 
@@ -51,18 +42,12 @@ public class ChoiceButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHa
         _isHovering = true;
         if (!_button.IsInteractable()) return;
 
-        AudioManager.instance.PlayOneShot("hover");
         InkManager.instance.ShowOutcomes(ChoiceIndex);
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!_button.IsInteractable()) return;
-
-        AudioManager.instance.PlayOneShot("click");
-
-        _image.color = ContainerNormalColor;
-        _choiceText.color = new Color32(LabelNormalTextColor.r, LabelNormalTextColor.g, LabelNormalTextColor.b, LabelNormalTextColor.a);
 
         InkManager.instance.SelectChoice(ChoiceIndex);
     }
@@ -97,40 +82,15 @@ public class ChoiceButton : MonoBehaviour, IPointerEnterHandler, IPointerClickHa
         UpdateChoiceText(string.Empty);
     }
 
-    public void UpdateChoiceText(string text) => _choiceText.text = text;
+    public void UpdateChoiceText(string text) => _label.text = text;
 
-    /// <summary>
-    /// Changes the palette for the button
-    /// </summary>
-    /// <param name="color"></param>
     public void UpdateColors(Color color)
     {
-        LabelNormalTextColor = color;
-        ContainerHighlightedColor = color;
+        _colorComponent.UpdateColors(color);
     }
 
-    /// <summary>
-    /// Resets the layout to its normal state
-    /// </summary>
     public void ResetColor()
     {
-        _image.color = ContainerNormalColor;
-        _choiceText.color = new Color32(LabelNormalTextColor.r, LabelNormalTextColor.g, LabelNormalTextColor.b, LabelNormalTextColor.a);
-    }
-
-    private void LateUpdate()
-    {
-        // Keep the visual feedback consistent after clicking
-        // if the cursor is still hovering the button
-        if (_isHovering && _button.IsInteractable())
-        {
-            _image.color = ContainerHighlightedColor;
-            _choiceText.color = new Color32(LabelHighlightedTextColor.r, LabelHighlightedTextColor.g, LabelHighlightedTextColor.b, LabelHighlightedTextColor.a);
-        }
-        else
-        {
-            _image.color = ContainerNormalColor;
-            _choiceText.color = new Color32(LabelNormalTextColor.r, LabelNormalTextColor.g, LabelNormalTextColor.b, LabelNormalTextColor.a);
-        }
+        _colorComponent.ResetColor();
     }
 }
