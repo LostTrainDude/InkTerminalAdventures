@@ -164,7 +164,7 @@ The Terminal has now an Apple][ green color
 Resets the color palette of the Terminal to its original one
 ##### Example
 ```
->>> COLOR: RESET`
+>>> COLOR: RESET
 The Terminal has now reset its color to the default amber one
 ```
 ---
