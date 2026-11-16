@@ -73,6 +73,7 @@ It is not mandatory to include such foreshadowing, but please note that whitespa
 `FUEL`, `FOOD`, `MORALE` and`STATUS` are being declared as "prefixes" in the `InkVariable` objects prepared in the `[InkManager]`  so, if you plan to use your own you may want to alter these accordingly
 
 ![Image showing the Unity Inspector for changing variable tracking settings in Ink Terminal Adventures](https://i.imgur.com/j336Pab.png)
+
 This alone should be enough to get started writing and testing your own events.
 
 ### TIP: How to work around the binary choice limitation
