@@ -27,8 +27,8 @@ It comes from quite a small ship, unregistered, suitable for just a single perso
 = radio
 >>> GLITCH: START
 As you try to get in touch, you are greeted by a prerecorded message: a song. It's slow, heavily distorted and repetitive, executed in loop as if it was a mantra.<>
-<br><br>Judging by the quality, it sounds like the transmission comes from a tape eroded by wear.<>
-<br><br>You sense a kind of disturbance in your comms.
+<br>Judging by the quality, it sounds like the transmission comes from a tape eroded by wear.<>
+<br>You sense a kind of disturbance in your comms.
 
     + [Board the ship]
     >>> GLITCH: STOP
@@ -41,7 +41,7 @@ As you try to get in touch, you are greeted by a prerecorded message: a song. It
 
 = board
 The interior of the cockpit is quite bare, abandoned and silent. The only light comes from outer space through the front window and a blinking terminal, scribbling data.
-<br><br>In front of it, the pilot's chair and, mostly hidden by its backrest, a lifeless body, arms dangling, covered in a full spacesuit.
+<br>In front of it, the pilot's chair and, mostly hidden by its backrest, a lifeless body, arms dangling, covered in a full spacesuit.
 
     + [Get closer]
     -> pilot
@@ -52,7 +52,7 @@ The interior of the cockpit is quite bare, abandoned and silent. The only light 
 = reconsider
 {radio == false:{once:>>> GLITCH: START}}
 
-You don't feel like staying in there and as you go help yourself to the exit, your comms system receives {radio:that song again.|a song.<br><br>It's slow, heavily distorted and repetitive, executed in loop as if it was a mantra. Judging by the quality, it sounds like the transmission comes from a tape eroded by wear.} You hesitate for a moment.
+You don't feel like staying in there and as you go help yourself to the exit, your comms system receives {radio:that song again.|a song.<br>It's slow, heavily distorted and repetitive, executed in loop as if it was a mantra. Judging by the quality, it sounds like the transmission comes from a tape eroded by wear.} You hesitate for a moment.
 
     + [Get closer to the pilot's chair]
     -> pilot
@@ -138,7 +138,7 @@ As soon as you jump out of hyperspace, you are greeted by a call request from a 
 
 = answer
 "Captain," the voice on the other end sounds simultaneously familiar and absolutely impossible to frame in time and space, "You carry something very important, with you".<>
-<br><br>Then, an almost surreal silence, as if they are expecting you to understand what they are referring to.
+<br>Then, an almost surreal silence, as if they are expecting you to understand what they are referring to.
 
     + (cassette_tape) ["The cassette tape?"]
     "Yes, the message," their answer is uttered with a tangible trepidation, "It is crucial, for us, Voidfarers, to be able to carry it forward."
@@ -233,7 +233,7 @@ As soon as you jump out of hyperspace, you are greeted by a call request from a 
 
 = refuse_delivery
 "Your words sadden us, Captain, it is no small thing that what you're carrying, although to most would seem useless." firmly states the voice.<>
-<br><br>"We ask you to reconsider."
+<br>"We ask you to reconsider."
 
     + (reconsider) [Reconsider]
     -> accept_delivery
@@ -251,7 +251,7 @@ As soon as you jump out of hyperspace, you are greeted by a call request from a 
 = meeting
 In a brief span of time your two ships reach each other. You walk up to the entrance, in anticipation, along with some of your crewmates. As the door opens, you see this figure, entirely covered in a spacesuit. <>
 Inside, you can barely see a shadow.<>
-<br><br>"Captain..."
+<br>"Captain..."
 
     + [Greet the figure]
     "We do not wish to stay more than it's due," they politely cut short, "but please accept our gratitude, on behalf of all the Voidfarer."
@@ -277,7 +277,7 @@ Inside, you can barely see a shadow.<>
 {meeting.early_exit:
     "We thank you, Captain," the figure slightly bows in gratitude, "please accept our gratitude on behalf of all the Voidfarer."<>
 }
-    They collect the tape, then proceed to leave.<br><br>You are left without a cassette tape{explanations == false:, a lot of questions,} and a deeper mystery on your mind.
+    They collect the tape, then proceed to leave.<br>You are left without a cassette tape{explanations == false:, a lot of questions,} and a deeper mystery on your mind.
     
     + [Better resume our trip]
     ~process_outcome(M_TAPE_2, POSITIVE)
